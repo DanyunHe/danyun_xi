@@ -1,49 +1,50 @@
-from ba import Ball, CollisionResponse
+from ba import Ball
 import pygame
 from pygame import Color, Rect
 import sys
 from math import fabs
 import numpy as np
+import math
+import random
 
 class BallWorld(object):
 	SCREEN_WIDTH, SCREEN_HEIGHT = 500, 600
-	def __init__(self):
+	def __init__(self,x1=30,y1=30,x2=40,y2=40,x3=50,y3=50,\
+		speed_x1=1000,speed_y1=0,speed_x2=-1000,speed_y2=0,speed_x3=0,speed_y3=-1000,\
+		left=0, top=0, width=100, height=100):
 		pygame.init()
 		self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), 0, 32)
 		self.clock = pygame.time.Clock()
 		self.balls = []
-		self.balls.append(Ball(300, 30, 2, 3, 20, Color('yellow'), 'yellow'))
-		self.balls.append(Ball(x=20, y=30,speed_x=3,speed_y=2, r=20, color=Color('red'), name='red'))
-		self.balls.append(Ball(60, 80, 3, 2, 20, Color('blue'), 'blue'))		
-		self.border = Rect(5, 5, 490, 590)
+		# initialize Ball(x,y,speed_x,speed_y,r,color,name)
+		self.balls.append(Ball(x1, y1, speed_x1,speed_y1, 20, Color('yellow'), 'yellow'))
+		self.balls.append(Ball(x2, y2,speed_x2,speed_y2,20, Color('red'),'red'))
+		self.balls.append(Ball(x3,y3, speed_x3, speed_y3, 20, Color('blue'), 'blue'))	
+		# initialize wall 	
+		self.border = Rect(left, top, width, height)
+		self.border.left=left
+		self.border.top=top
+		self.border.width=width
+		self.border.height=height
 		
-	def update(self):
-		timeStep = 1
-		
-		while timeStep > CollisionResponse.T_EPSILON:
-			tMin = timeStep
-			#check collision with other balls
-			for i in range(len(self.balls)):
-				for j in range(len(self.balls)):
-					if i < j:
-						self.balls[i].detect_collision_with_other_ball(self.balls[j], tMin)
-						self.balls[i].log_collision('1)')
-						self.balls[j].log_collision('2)')
-					if self.balls[i].collision_response.t < tMin:
-						tMin = self.balls[i].collision_response.t
-			#check collision with box border:
-			for b in self.balls:
-				b.detect_collision_with_box(self.border, tMin)
-				if b.collision_response.t < tMin:
-					tMin = b.collision_response.t		
-			for b in self.balls:
-				b.log('ball ')
-				b.update(tMin)
-				b.log('ball after update')
-				
-			timeStep -= tMin
-			print('time step',timeStep)
+	def update(self,dt):
 	
+		#check collision with other balls
+		for i in range(len(self.balls)):
+			for j in range(len(self.balls)):
+				if i < j:
+					self.balls[i].detect_collision_with_other_ball(self.balls[j],dt)
+
+		#check collision with box border:
+		for b in self.balls:
+			b.detect_collision_with_box(self.border,dt)
+		
+		# move by time step dt
+		for b in self.balls:
+			b.log('ball ')
+			b.move(dt)
+			
+
 	def log(self, ball, description):
 		print(description, 'x', ball.x, 'y', ball.y)
 
@@ -55,27 +56,47 @@ class BallWorld(object):
 	def quit(self):
 		sys.exit()
 
-	def run(self):
+	# N: number of episodes
+	# T: number of steps
+	# dt: size of time step 
+	def run(self,N,T,dt=0.001):
 		pygame.key.set_repeat(30, 30)
 		params=[] # data [t,num_balls,4], contain position and velocity information at all the time for all the balls
-		for _ in range(10):
-			#time_passed = self.clock.tick(50)
-			self.update()
-			for b in self.balls:
-				params.append(b.get_params())
+		for _ in range(N):
 
-			self.draw()
-			for e in pygame.event.get():
-				#if e.type == pygame.KEYDOWN:
-					#if e.key == pygame.K_RETURN:
-						#self.update()
-						#self.draw()
-				if e.type == pygame.QUIT:
-					self.quit()		
-			pygame.display.flip()								
+			# reset the position and velocity of balls 
+			for i in range(3):
+				angle=random.uniform(0,2*math.pi)
+				speed_x=10*math.cos(angle)
+				speed_y=10*math.sin(angle)
+				self.balls[i]._set_speed(speed_x,speed_y)
+				x=random.uniform(self.border.left,self.border.width-self.border.left)
+				y=random.uniform(self.border.top,self.border.height-self.border.top)
+				self.balls[i]._set_position(x,y)
+
+			for _ in range(T):
+				self.update(dt)
+				for b in self.balls:
+					params.append(b.get_params())
+
+				self.draw()
+				for e in pygame.event.get():
+					#if e.type == pygame.KEYDOWN:
+						#if e.key == pygame.K_RETURN:
+							#self.update()
+							#self.draw()
+					if e.type == pygame.QUIT:
+						self.quit()		
+				pygame.display.flip()								
 		return params
+
 if __name__=="__main__":
-	bw = BallWorld()
-	params=bw.run()
+	random.seed(777)
+	# initial balls position, speed, and box size 
+	bw = BallWorld(x1=30,y1=30,x2=40,y2=40,x3=50,y3=50,\
+		speed_x1=100,speed_y1=0,speed_x2=-100,speed_y2=0,speed_x3=0,speed_y3=-100,\
+		left=0, top=0, width=200, height=200)
+
+	params=bw.run(1,10000,0.3) # generate data 
 	print(params[0])
 	print(np.array(params).shape)
