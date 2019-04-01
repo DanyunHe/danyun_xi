@@ -57,7 +57,7 @@ class Ball(object):
         self.y=self.get_new_y(dt)
 
     def get_energy(self):
-        return self.speed_x**2+self.speed_y**2
+        return 0.5*self.mass*(self.speed_x**2+self.speed_y**2)
         
 
 
@@ -103,10 +103,10 @@ class Ball(object):
             v2t = v2x*cos(theta) + v2y*sin(theta)
             v2n = v2x*sin(theta) - v2y*cos(theta)
 
-            # v1n, v2n = ((m1-m2)/(m1+m2)*v1n+(2*m2)/(m1+m2)*v2n,
-            #     (2*m1)/(m1+m2)*v1n+(m2-m1)/(m1+m2)*v2n)
+            v1n, v2n = ((m1-m2)/(m1+m2)*v1n+(2*m2)/(m1+m2)*v2n,
+                (2*m1)/(m1+m2)*v1n+(m2-m1)/(m1+m2)*v2n)
 
-            v1n, v2n = v2n, v1n
+            # v1n, v2n = v2n, v1n
             self.speed_x = v1t*cos(theta) + v1n*sin(theta)
             self.speed_y = v1t*sin(theta) - v1n*cos(theta)
 

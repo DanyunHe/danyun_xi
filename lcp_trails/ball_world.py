@@ -18,7 +18,7 @@ class BallWorld(object):
 		self.clock = pygame.time.Clock()
 		self.balls = []
 		# initialize Ball(x,y,speed_x,speed_y,r,color,name)
-		self.balls.append(Ball(x1, y1, speed_x1,speed_y1, 20, Color('yellow'), 'yellow', self.verbose))
+		self.balls.append(Ball(x1, y1, speed_x1,speed_y1, 10, Color('yellow'), 'yellow', self.verbose))
 		self.balls.append(Ball(x2, y2,speed_x2,speed_y2,20, Color('red'),'red', self.verbose))
 		self.balls.append(Ball(x3,y3, speed_x3, speed_y3, 20, Color('blue'), 'blue', self.verbose))	
 		# initialize wall 	
