@@ -18,7 +18,7 @@ class Ball(object):
         self.x=x
         self.y=y
     
-    def __init__(self, x, y, speed_x,speed_y,r, color, name=''):
+    def __init__(self, x, y, speed_x,speed_y,r, color, name, verbose):
         self.name = name
         self.x = x
         self.y = y
@@ -26,6 +26,7 @@ class Ball(object):
         self.r = r
         self.color = color
         self.mass=r**3
+        self.verbose = verbose
 
     def get_x(self):
         return self.x
@@ -54,6 +55,9 @@ class Ball(object):
     def move(self,dt):
         self.x=self.get_new_x(dt)
         self.y=self.get_new_y(dt)
+
+    def get_energy(self):
+        return self.speed_x**2+self.speed_y**2
         
 
 
@@ -70,17 +74,22 @@ class Ball(object):
         o_new_y=o.get_new_y(dt)
 
 
+        ## if the new position is overlapping and the current position not, or both are overlapping 
         if ((new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2 and (self.x-o.x)**2+(self.y-o.y)**2>(self.r+o.r)**2) or \
         ((new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2 and (self.x-o.x)**2+(self.y-o.y)**2<=(self.r+o.r)**2 and \
             (new_x-o_new_x)**2+(new_y-o_new_y)**2<(self.x-o.x)**2+(self.y-o.y)**2):
-            print("collision happens")
+
+        # if (new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2:
+            if self.verbose:
+                print("collision happens")
             mass=self.mass
             o_mass=o.mass
             m1 = mass
             m2 = o_mass
-            print('old speed',self.speed_x,self.speed_y)
+            if self.verbose:
+                print('old speed',self.speed_x,self.speed_y)
 
-            normal_tan = -(new_y - o_new_y)/(new_x - o_new_x)
+            normal_tan = -(self.x - o.x)/(self.y - o.y)
             normal_angle = arctan(normal_tan)
             theta = normal_angle
 
@@ -94,9 +103,10 @@ class Ball(object):
             v2t = v2x*cos(theta) + v2y*sin(theta)
             v2n = v2x*sin(theta) - v2y*cos(theta)
 
-            v1n, v2n = ((m1-m2)/(m1+m2)*v1n+(2*m2)/(m1+m2)*v2n,
-                (2*m1)/(m1+m2)*v1n+(m2-m1)/(m1+m2)*v2n)
+            # v1n, v2n = ((m1-m2)/(m1+m2)*v1n+(2*m2)/(m1+m2)*v2n,
+            #     (2*m1)/(m1+m2)*v1n+(m2-m1)/(m1+m2)*v2n)
 
+            v1n, v2n = v2n, v1n
             self.speed_x = v1t*cos(theta) + v1n*sin(theta)
             self.speed_y = v1t*sin(theta) - v1n*cos(theta)
 
@@ -124,20 +134,23 @@ class Ball(object):
     def detect_collision_with_vertical_line(self, x,dt):
         new_x=self.get_new_x(dt)
         if abs(new_x-x)<=self.r:
-            print('collision with vertical line')
+            if self.verbose:
+                print('collision with vertical line')
             self.speed_x=-self.speed_x
 
             
     def detect_collision_with_horizontal_line(self, y, dt):
         new_y=self.get_new_y(dt)
         if abs(new_y-y)<=self.r:
-            print('collision with horizontal line')
+            if self.verbose:
+                print('collision with horizontal line')
             self.speed_y=-self.speed_y
 
         
     
     def log(self, description):
-        print(description, self.name, self.x, self.y, self.speed_x, self.speed_y)
+        if self.verbose:
+            print(description, self.name, self.x, self.y, self.speed_x, self.speed_y)
     
    
 # COLLISION TESTING
