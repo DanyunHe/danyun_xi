@@ -70,9 +70,12 @@ class Ball(object):
         o_new_y=o.get_new_y(dt)
 
 
+        ## if the new position is overlapping and the current position not, or both are overlapping 
         if ((new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2 and (self.x-o.x)**2+(self.y-o.y)**2>(self.r+o.r)**2) or \
         ((new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2 and (self.x-o.x)**2+(self.y-o.y)**2<=(self.r+o.r)**2 and \
             (new_x-o_new_x)**2+(new_y-o_new_y)**2<(self.x-o.x)**2+(self.y-o.y)**2):
+
+        # if (new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2:
             print("collision happens")
             mass=self.mass
             o_mass=o.mass
@@ -80,7 +83,7 @@ class Ball(object):
             m2 = o_mass
             print('old speed',self.speed_x,self.speed_y)
 
-            normal_tan = -(new_y - o_new_y)/(new_x - o_new_x)
+            normal_tan = -(self.x - o.x)/(self.y - o.y)
             normal_angle = arctan(normal_tan)
             theta = normal_angle
 
