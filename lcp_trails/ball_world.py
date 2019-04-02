@@ -128,6 +128,9 @@ if __name__=="__main__":
 	
 	print('done, saving data')
 
-	input_params.to_pickle('./data/input_params.pkl')    #to save the dataframe, df to 123.pkl
-	out_params.to_pickle('./data/out_params.pkl')
+	# input_params.to_pickle('./data/input_params.pkl')    #to save the dataframe, df to 123.pkl
+	# out_params.to_pickle('./data/out_params.pkl')
+
+	input_params.to_csv('./data/input_params.csv', encoding='utf-8', index=False)
+	out_params.to_csv('./data/out_params.csv', encoding='utf-8', index=False)
 
