@@ -51,19 +51,129 @@ class Ball(object):
 
     def draw(self, screen):
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.r)
-    
+
+
+    def get_energy(self):
+        return 0.5*self.mass*(self.speed_x**2+self.speed_y**2)
+     
+    def get_ball_col_time(self, o):
+        normal_tan = -(self.x - o.x)/(self.y - o.y)
+        normal_angle = arctan(normal_tan)
+        theta = normal_angle 
+        dist = np.sqrt((self.x - o.x)**2+(self.y - o.y)**2)
+        v1x = self.speed_x
+        v1y = self.speed_y
+        v2x = o.speed_x
+        v2y = o.speed_y   
+
+        v1n = v1x*sin(theta) - v1y*cos(theta)
+        v2n = v2x*sin(theta) - v2y*cos(theta)
+
+        t_cand = np.abs(dist-self.r-o.r)/np.abs(v1n-v2n)
+
+        newx=self.get_new_x(t_cand)
+        newy=self.get_new_y(t_cand)
+        onewx=o.get_new_x(t_cand)
+        onewy=o.get_new_y(t_cand)
+
+        if dist**2<(newx-onewx)**2+(newy-onewy)**2:
+            return 1e9
+        else:
+            return t_cand
+
+    def get_wall_col_time(self, box):
+        vx = self.speed_x
+        vy = self.speed_y
+        x = self.x
+        y = self.y
+
+        tmx, tpx, tmy, tpy = [np.abs((box.x - x)/vx) -np.abs(self.r/vx), np.abs((box.x + box.width - x)/vx)-np.abs(self.r/vx),
+        np.abs((box.y - y)/vy) -np.abs(self.r/vy), np.abs((box.y + box.height - y)/vy)-np.abs(self.r/vy)]
+
+        if vx>0:
+            if vy>0:
+                if tpx < tpy:
+                    return tpx, 1
+                else:
+                    return tpy, 3
+            else:
+                if tpx < tmy:
+                    return tpx, 1
+                else:
+                    return tmy, 2
+        else:
+            if vy>0:
+                if tmx < tpy:
+                    return tmx, 0
+                else:
+                    return tpy, 3
+            else:
+                if tmx < tmy:
+                    return tmx, 0
+                else:
+                    return tmy, 2
+
+
+        #         np.array([np.abs((box.x-x)/vx)-np.abs(self.r/vx), np.abs((box.x + box.width-x)/vx)-np.abs(self.r/vx), 
+        #             np.abs((box.y-y)/vy)-np.abs(self.r/vy), np.abs((box.y + box.height-y)/vy)-np.abs(self.r/vy)])
+        # min_choice = np.argmin(col_times)
+
+        # return col_times[min_choice], min_choice
+
     def move(self,dt):
         self.x=self.get_new_x(dt)
         self.y=self.get_new_y(dt)
 
-    def get_energy(self):
-        return 0.5*self.mass*(self.speed_x**2+self.speed_y**2)
-        
+    def move_ball(self, o, dt):
+        self.x=self.get_new_x(dt)
+        self.y=self.get_new_y(dt)
+        o.x=o.get_new_x(dt)
+        o.y=o.get_new_y(dt)
+        mass=self.mass
+        o_mass=o.mass
+        m1 = mass
+        m2 = o_mass
+        if self.verbose:
+            print('old speed',self.speed_x,self.speed_y)
+
+        normal_tan = -(self.x - o.x)/(self.y - o.y)
+        normal_angle = arctan(normal_tan)
+        theta = normal_angle
+
+        v1x = self.speed_x
+        v1y = self.speed_y
+        v2x = o.speed_x
+        v2y = o.speed_y
+
+        v1t = v1x*cos(theta) + v1y*sin(theta)
+        v1n = v1x*sin(theta) - v1y*cos(theta)
+        v2t = v2x*cos(theta) + v2y*sin(theta)
+        v2n = v2x*sin(theta) - v2y*cos(theta)
+
+        v1n, v2n = ((m1-m2)/(m1+m2)*v1n+(2*m2)/(m1+m2)*v2n,
+            (2*m1)/(m1+m2)*v1n+(m2-m1)/(m1+m2)*v2n)
+
+        # v1n, v2n = v2n, v1n
+        self.speed_x = v1t*cos(theta) + v1n*sin(theta)
+        self.speed_y = v1t*sin(theta) - v1n*cos(theta)
+
+        o.speed_x = v2t*cos(theta) + v2n*sin(theta)
+        o.speed_y = v2t*sin(theta) - v2n*cos(theta)        
+
+    def move_wall(self, dt, wall_index):
+        self.x=self.get_new_x(dt)
+        self.y=self.get_new_y(dt)
+        if wall_index == 0 or wall_index == 1:
+            self.speed_x = -self.speed_x
+        else:
+            self.speed_y = -self.speed_y
+
+
 
 
     # detect collision and calculate new speed and position, change speed if collision happens 
     # tiemStep: dt  
-    def detect_collision_with_other_ball(self, o,dt):
+    def collision_with_other_ball(self, o,dt):
 
         # if (self.x-o.x)**2+(self.y-o.y)**2>(self.r+o.r)**2:
         #     self.status = 'overlap'
@@ -79,7 +189,7 @@ class Ball(object):
         ((new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2 and (self.x-o.x)**2+(self.y-o.y)**2<=(self.r+o.r)**2 and \
             (new_x-o_new_x)**2+(new_y-o_new_y)**2<(self.x-o.x)**2+(self.y-o.y)**2):
 
-        # if (new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2:
+        #if (new_x-o_new_x)**2+(new_y-o_new_y)**2<=(self.r+o.r)**2:
             if self.verbose:
                 print("collision happens")
             mass=self.mass
@@ -121,7 +231,7 @@ class Ball(object):
   
 
      # detect collition with wall, change speed if collision happens   
-    def detect_collision_with_box(self, box, dt):
+    def collision_with_box(self, box, dt):
         #check vertical collision:
         self.detect_collision_with_vertical_line(box.x, dt)
         self.detect_collision_with_vertical_line(box.x + box.width, dt)
@@ -131,7 +241,7 @@ class Ball(object):
     # detect collition with vertical line, change speed if collision happens 
     # x: vertical line position 
     # dt: move by time step dt 
-    def detect_collision_with_vertical_line(self, x,dt):
+    def collision_with_vertical_line(self, x,dt):
         new_x=self.get_new_x(dt)
         if abs(new_x-x)<=self.r:
             if self.verbose:
@@ -139,7 +249,7 @@ class Ball(object):
             self.speed_x=-self.speed_x
 
             
-    def detect_collision_with_horizontal_line(self, y, dt):
+    def collision_with_horizontal_line(self, y, dt):
         new_y=self.get_new_y(dt)
         if abs(new_y-y)<=self.r:
             if self.verbose:
