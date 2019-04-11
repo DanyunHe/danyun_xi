@@ -10,7 +10,7 @@ import random
 class BallWorld(object):
 	SCREEN_WIDTH, SCREEN_HEIGHT = 600, 100
 	def __init__(self,x1=30,y1=30,x2=70,y2=70,x3=150,y3=50,x4=150, y4=150,\
-		speed_x1=1000,speed_y1=0,speed_x2=-1000,speed_y2=0,speed_x3=300,speed_y3=-1000,speed_x4=1000, speed_y4=1000,\
+		speed_x1=1000,speed_y1=0,speed_x2=-500,speed_y2=0,speed_x3=300,speed_y3=-1000,speed_x4=1000, speed_y4=1000,\
 		left=0, top=0, width=100, height=100, verbose = 0):
 		pygame.init()
 		self.verbose = verbose
@@ -18,10 +18,10 @@ class BallWorld(object):
 		self.clock = pygame.time.Clock()
 		self.balls = []
 		# initialize Ball(x,y,speed_x,speed_y,r,color,name)
-		self.balls.append(Ball(x1, speed_x1, 10, Color('yellow'), 'yellow', self.verbose))
+		self.balls.append(Ball(x1, speed_x1, 20, Color('yellow'), 'yellow', self.verbose))
 		self.balls.append(Ball(x2, speed_x2, 20, Color('red'),'red', self.verbose))
-		self.balls.append(Ball(x3, speed_x3, 30, Color('blue'), 'blue', self.verbose))	
-		#self.balls.append(Ball(x4, speed_x4, 10, Color('green'), 'green', self.verbose))	
+		# self.balls.append(Ball(x3, speed_x3, 30, Color('blue'), 'blue', self.verbose))	
+		# self.balls.append(Ball(x4, speed_x4, 10, Color('green'), 'green', self.verbose))	
 		# initialize wall 	
 		self.border = Rect(left, top, width, height)
 		self.border.left=left
@@ -72,9 +72,17 @@ class BallWorld(object):
 			else:
 
 				## no more collision is going to happen. Just normally move 't_remaining'
+				## This block has to call at least once.
+
 				for i in range(len(self.balls)):
 					self.balls[i].move(t_remaining)
 				break
+
+		result_temp = []
+		for i in range(len(self.balls)):
+			result_temp += [self.balls[i].get_x(), self.balls[i].get_speed_x(),np.min((np.abs(self.balls[i].get_x()-self.border.x),
+			np.abs(self.balls[i].get_x()-self.border.x-self.border.width)))]
+		result.append(result_temp)
 
 
 
@@ -150,13 +158,17 @@ class BallWorld(object):
 		return params
 
 if __name__=="__main__":
+	verbose = 0
 	random.seed(77)
 	# initial balls position, speed, and box size 
 	bw = BallWorld(x1=30.1,y1=30.2,x2=70.1,y2=70.2,x3=250.1,y3=100.2, x4=150, y4=150,\
-		speed_x1=500,speed_y1=300,speed_x2=-500,speed_y2=1,speed_x3=300,speed_y3=-1000, speed_x4=1000, speed_y4=1000,\
+		speed_x1=500,speed_y1=300,speed_x2=-200,speed_y2=1,speed_x3=300,speed_y3=-1000, speed_x4=1000, speed_y4=1000,\
 		left=0, top=0, width=600, height=100, verbose = 0)
-
-	params=bw.run(1,20000,0.01) # generate data 
+	result = []
+	params=bw.run(1,3000,0.01) # generate data 
+	result = np.array(result)
+	print(result)
+	np.savetxt('./test',result, fmt='%.5f')
 	if verbose:
 		print(params[0])
 		print(np.array(params).shape)
