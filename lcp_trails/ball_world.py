@@ -130,43 +130,35 @@ class BallWorld(object):
 	def run(self,N,T,dt, verbose = 0):
 		# pygame.key.set_repeat(30, 30)
 		# params=[] # data [t,num_balls,4], contain position and velocity information at all the time for all the balls
-		input_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1'])
-		out_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1'])
+		input_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1',\
+			'x2','y2','vx2','vy2','x3','y3','vx3','vy3',\
+			'x4','y4','vx4','vy4','x5','y5','vx5','vy5'])
+		out_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1',\
+			'x2','y2','vx2','vy2','x3','y3','vx3','vy3',\
+			'x4','y4','vx4','vy4','x5','y5','vx5','vy5'])
 		
 		
 		for num in range(N):
 
+			# reset the position and velocity of balls 
 			speed_x=np.random.uniform(10,70)
 			speed_y=np.random.uniform(10,70)
 			self.balls[0]._set_speed(speed_x,speed_y)
 			self.balls[0]._set_position(50,50)
 
-			# reset the position and velocity of balls 
-			# for i in range(2):
-			# 	angle=random.uniform(0,2*math.pi)
-			# 	speed_x=10*math.cos(angle)
-			# 	speed_y=10*math.sin(angle)
-			# 	self.balls[i]._set_speed(speed_x,speed_y)
-			# 	x=random.uniform(self.border.left,self.border.width-self.border.left)
-			# 	y=random.uniform(self.border.top,self.border.height-self.border.top)
-			# 	self.balls[i]._set_position(x,y)
-
+			int_params_=[]
+			out_params_=[]
 			for t in range(T):
 				self.update(dt)
-				if t==10:
-					params=[]
+				
+				if t>=10 and t<=14:
 					for b in self.balls:
-						params+=b.get_params()
+						int_params_+=b.get_params()
 
-					input_params.loc[num]=params
-
-				if t==40:
-					params=[]
+				if t>=40 and t<=44:
+					
 					for b in self.balls:
-						params+=b.get_params()
-
-					out_params.loc[num]=params
-
+						out_params_+=b.get_params()
 
 				# self.draw()
 				for e in pygame.event.get():
@@ -176,7 +168,10 @@ class BallWorld(object):
 							#self.draw()
 					if e.type == pygame.QUIT:
 						self.quit()		
-				# pygame.display.flip()								
+				# pygame.display.flip()	
+			
+			input_params.loc[num]=int_params_
+			out_params.loc[num]=out_params_							
 		return input_params,out_params
 
 if __name__=="__main__":
@@ -189,8 +184,8 @@ if __name__=="__main__":
 	result = []
 	input_params,out_params=bw.run(10000,50,0.05) # generate data 
 	print('done, saving data')
-	input_params.to_csv('./data/input_params.csv', encoding='utf-8', index=False)
-	out_params.to_csv('./data/out_params.csv', encoding='utf-8', index=False)
+	input_params.to_csv('./data/4w_input_params.csv', encoding='utf-8', index=False)
+	out_params.to_csv('./data/4w_out_params.csv', encoding='utf-8', index=False)
 
 	if verbose:
 		print(params[0])
