@@ -6,6 +6,7 @@ from math import fabs
 import numpy as np
 import math
 import random
+import pandas as pd
 
 class BallWorld(object):
 	SCREEN_WIDTH, SCREEN_HEIGHT = 300, 300
@@ -18,7 +19,7 @@ class BallWorld(object):
 		self.clock = pygame.time.Clock()
 		self.balls = []
 		# initialize Ball(x,y,speed_x,speed_y,r,color,name)
-		self.balls.append(Ball(x1, y1, speed_x1,speed_y1, 20, Color('yellow'), 'yellow', self.verbose))
+		self.balls.append(Ball(x1, y1, speed_x1,speed_y1, 5, Color('yellow'), 'yellow', self.verbose))
 		#self.balls.append(Ball(x2, y2,speed_x2,speed_y2,20, Color('red'),'red', self.verbose))
 		#self.balls.append(Ball(x3,y3, speed_x3, speed_y3, 20, Color('blue'), 'blue', self.verbose))	
 		#self.balls.append(Ball(x4,y4, speed_x4, speed_y4, 0, Color('green'), 'green', self.verbose))	
@@ -127,9 +128,18 @@ class BallWorld(object):
 	# T: number of steps
 	# dt: size of time step 
 	def run(self,N,T,dt, verbose = 0):
-		pygame.key.set_repeat(30, 30)
-		params=[] # data [t,num_balls,4], contain position and velocity information at all the time for all the balls
-		for _ in range(N):
+		# pygame.key.set_repeat(30, 30)
+		# params=[] # data [t,num_balls,4], contain position and velocity information at all the time for all the balls
+		input_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1'])
+		out_params=pd.DataFrame([],columns=['x1','y1','vx1','vy1'])
+		
+		
+		for num in range(N):
+
+			speed_x=np.random.uniform(10,70)
+			speed_y=np.random.uniform(10,70)
+			self.balls[0]._set_speed(speed_x,speed_y)
+			self.balls[0]._set_position(50,50)
 
 			# reset the position and velocity of balls 
 			# for i in range(2):
@@ -141,12 +151,24 @@ class BallWorld(object):
 			# 	y=random.uniform(self.border.top,self.border.height-self.border.top)
 			# 	self.balls[i]._set_position(x,y)
 
-			for _ in range(T):
+			for t in range(T):
 				self.update(dt)
-				for b in self.balls:
-					params.append(b.get_params())
+				if t==10:
+					params=[]
+					for b in self.balls:
+						params+=b.get_params()
 
-				self.draw()
+					input_params.loc[num]=params
+
+				if t==40:
+					params=[]
+					for b in self.balls:
+						params+=b.get_params()
+
+					out_params.loc[num]=params
+
+
+				# self.draw()
 				for e in pygame.event.get():
 					#if e.type == pygame.KEYDOWN:
 						#if e.key == pygame.K_RETURN:
@@ -154,20 +176,22 @@ class BallWorld(object):
 							#self.draw()
 					if e.type == pygame.QUIT:
 						self.quit()		
-				pygame.display.flip()								
-		return params
+				# pygame.display.flip()								
+		return input_params,out_params
 
 if __name__=="__main__":
 	random.seed(77)
 	# initial balls position, speed, and box size 
-	bw = BallWorld(x1=30.1,y1=30.2,x2=70.1,y2=70.2,x3=100.1,y3=100.2, x4=150, y4=150,\
+	bw = BallWorld(x1=50.1,y1=50.2,x2=70.1,y2=70.2,x3=100.1,y3=100.2, x4=150, y4=150,\
 		speed_x1=1000,speed_y1=303.5,speed_x2=-1000,speed_y2=1,speed_x3=1,speed_y3=-1000, speed_x4=1000, speed_y4=1000,\
-		left=0, top=0, width=300, height=300, verbose = 0)
+		left=0, top=0, width=100, height=100, verbose = 0)
 	verbose = 0
 	result = []
-	params=bw.run(1,3000,0.01) # generate data 
-	result = np.array(result)
-	np.savetxt('./test',result, fmt='%.5f')
+	input_params,out_params=bw.run(10000,50,0.05) # generate data 
+	print('done, saving data')
+	input_params.to_csv('./data/input_params.csv', encoding='utf-8', index=False)
+	out_params.to_csv('./data/out_params.csv', encoding='utf-8', index=False)
+
 	if verbose:
 		print(params[0])
 		print(np.array(params).shape)
