@@ -68,11 +68,12 @@ def collision_pt(x1, x2, y1, y2, r1, r2, vx1, vx2, vy1, vy2):
 # generate data of ball-ball collision 
 # initials: state before collision: (x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2) at time t
 # finals: state after collision: (x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2) at time t+1
-def ball_ball_update_data(n_sample=1000000,dt=1):
+def ball_ball_update_data(n_sample=100000,dt=1):
 	initials = []
 	finals = []
 	collision_points = []
-	for i in tqdm(range(n_sample)):
+	count=0
+	while count<n_sample:
 	    r1 = np.random.rand()*1.5+0.5
 	    r2 = 1
 	    m1 = np.random.rand()*1.5+0.5
@@ -91,6 +92,7 @@ def ball_ball_update_data(n_sample=1000000,dt=1):
 	            initials.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
 	            x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2 = update(x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2, dt)
 	            finals.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
+	            count+=1
 	        else:
 	            continue
 	    else:
@@ -102,7 +104,7 @@ def ball_ball_update_data(n_sample=1000000,dt=1):
 	return initials,finals 
 
 
-# generate data of ball-wall collision detection 
+# generate data of ball-wall collision detection: 5*n_sample data, ensure each case appears n_sample times
 # initials: state before collision: (x, y, r, vx, vy)
 # finals: collision state by one-hot  
 # hit -x: [1,0,0,0,0]
@@ -152,7 +154,7 @@ def ball_wall_detect_data(dt=1,width=1,n_sample=10000):
 	print('ball wall detect data generated!')
 	return initials, finals
 
-# generate data of ball-ball collision detection 
+# generate data of ball-ball collision detection: 2*n_sample data, ensure each case appears n_sample times 
 # fix ball2: (x2, y2, r2, vx2, vy2) = (0,0,1,0,0)
 # initials: state before collision of ball1 - (x1, y1, r1, vx1, vy1)
 # finals: collision state (1: collision, 0: no collision)
@@ -189,17 +191,19 @@ def ball_ball_detect_data(dt=1,width=1,n_sample = 100000):
 	        continue
 	results = np.array(results)
 	np.random.shuffle(results)
-	initials=results[:,:4]
-	finals=results[:,-1]
+	initials=results[:,:5]
+	finals=results[:,-1].reshape(-1,1)
 	print('ball ball detect data generated!')
 
 	return initials,finals
 
 if __name__ == '__main__':
-	ball_ball_update_data(n_sample=100,dt=1)
-	ball_wall_detect_data(dt=1,width=1,n_sample=100)
-	ball_ball_detect_data(dt=1,width=1,n_sample = 100)
-
+	initials,finals=ball_ball_update_data(n_sample=100,dt=1)
+	print(initials.shape,finals.shape)
+	initials,finals=ball_wall_detect_data(dt=1,width=1,n_sample=100)
+	print(initials.shape,finals.shape)
+	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample = 100)
+	print(initials.shape,finals.shape)
 
 
 
