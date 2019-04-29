@@ -90,11 +90,13 @@ def train_model(data,target,model,loss_fn,optimizer,nEpoch,bach_size=20):
     
     return model
 
+# input (8): (x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p)
+# output (8): (x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p)
 class ball_ball_update_net(nn.Module):
     def __init__(self):
         super(ball_ball_update_net,self).__init__()
         
-        self.fc1=nn.Linear(6,2000)
+        self.fc1=nn.Linear(8,2000)
         self.fc2=nn.Linear(2000,2000)
         self.fc3=nn.Linear(2000,8)
        
@@ -104,12 +106,12 @@ class ball_ball_update_net(nn.Module):
         x=F.relu(self.fc2(x))
         x=self.fc3(x)
         # x=e_con(x)
-
-
         return x
 
+# input (8): (x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p)
+# output (8): (x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p)
 class ball_ball_update_opt_net(nn.Module):
-    def __init__(self, nFeatures, nHidden, nCls, neq, Qpenalty=10, eps=1e-4):
+    def __init__(self, nFeatures=8, nHidden=200, nCls=8, neq=2, Qpenalty=10, eps=1e-4):
         super(ball_ball_update_opt_net,self).__init__()
 
         self.nFeatures = nFeatures
@@ -131,8 +133,6 @@ class ball_ball_update_opt_net(nn.Module):
 #         self.A=Variable(torch.zeros(2,nFeatures).double())
 #         self.b = Parameter(torch.ones(self.A.size(0)).double())
 #         self.p=Parameter(-torch.ones(nFeatures).double())
-        
-
         self.neq = neq
 
     def forward(self, x):
@@ -150,14 +150,15 @@ class ball_ball_update_opt_net(nn.Module):
         h = self.h.unsqueeze(0).expand(nBatch, self.h.size(0))
        
 #         A=torch.cat([torch.tensor([[0,0,0,0,0,0,0,0,x[i,6],x[i,7],0,0],[0,0,0,0,0,0,0,0,0,0,x[i,6],x[i,7]] for i in range(nBatch)])],0)
-        A=torch.cat(([torch.tensor([[0,0,0,0,0,0,0,0,x[i,6],x[i,7],0,0],[0,0,0,0,0,0,0,0,0,0,x[i,6],x[i,7]]]).unsqueeze(0).double() for i in range(nBatch)]),0).double()
+        A=torch.cat(([torch.tensor([[0,0,0,0,x[i,3],1,0,0],[0,0,0,0,0,0,x[i,3],1]]).unsqueeze(0).double() for i in range(nBatch)]),0).double()
         # momentum: m1*vx1+m2*vx2=m1*vx1'+m2*vx2'
        
 #         A = self.A.unsqueeze(0).expand(nBatch, self.A.size(0), self.A.size(1))
         
 #         b = self.b.unsqueeze(0).expand(nBatch, self.b.size(0))
 #         b=torch.stack((x[:,5]+x[:,6],x[:,7]+x[:,8]),dim=1).double()
-        b=torch.stack((x[:,6]*x[:,8]+x[:,7]*x[:,9],x[:,6]*x[:,10]+x[:,7]*x[:,11]),dim=1).double()
+		# b=[m1*vx1+m2*vx2, m1*vy1+m2*vy2]
+        b=torch.stack((x[:,3]*x[:,4]+x[:,5],x[:,3]*x[:,6]+x[:,7]),dim=1).double()
         x = QPFunction(verbose=False)(Q, p.double(), G, h, A, b).float()
         
         x = F.relu(self.fc1(x))
@@ -165,10 +166,10 @@ class ball_ball_update_opt_net(nn.Module):
         x=F.relu(self.fc3(x))
         x=self.fc4(x)
        
-
         return x
 
-
+# input (5): (x1, y1, r1, vx1, vy1)
+# output (5): one hot encode of collision wall
 class ball_wall_detect_net(nn.Module):
     def __init__(self):
         super(ball_wall_detect_net,self).__init__()
@@ -184,6 +185,8 @@ class ball_wall_detect_net(nn.Module):
 
         return x
 
+# input: (x1p, y1p, r1p, vx1p, vy1p)
+# output: 0: no collision, 1: collision 
 class ball_ball_detect_net(nn.Module):
     def __init__(self):
         super(ball_ball_detect_net,self).__init__()
@@ -204,22 +207,33 @@ class ball_ball_detect_net(nn.Module):
 
 if __name__ == '__main__':
 
-
-	'''
-	# train ball ball update model
 	
+	# train ball ball update model
 	initials,finals=ball_ball_update_data(n_sample=2000,dt=1)
 	print(initials.shape,finals.shape)
 	data,target=data_trans(initials,finals)
 	model=ball_ball_update_net()
 	loss_fn = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	train_model(data,target,model,loss_fn,optimizer,nEpoch=20,bach_size=100)
- 	'''
-
- 	'''
-	# train ball wall detection model
+	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=100)
+	torch.save(model.state_dict(), './saved_models/model_bb_update')
+	print('model ball-ball update saved')
 	
+
+
+	# train ball ball update opt model
+	initials,finals=ball_ball_update_data(n_sample=2000,dt=1)
+	print(initials.shape,finals.shape)
+	data,target=data_trans(initials,finals)
+	model=ball_ball_update_opt_net()
+	loss_fn = nn.MSELoss()
+	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
+	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=5,bach_size=100)
+	torch.save(model.state_dict(), './saved_models/model_bb_opt_update')
+	print('model ball-ball opt update saved')
+
+	
+	# train ball wall detection model
 	initials,finals=ball_wall_detect_data(dt=1,width=1,n_sample=10000)
 	finals=np.argmax(finals,axis=1)
 	print(initials.shape,finals.shape)
@@ -228,11 +242,10 @@ if __name__ == '__main__':
 	model=ball_wall_detect_net()
 	loss_fn = nn.NLLLoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	train_model(data,target,model,loss_fn,optimizer,nEpoch=300,bach_size=200)
+	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
+	torch.save(model.state_dict(), './saved_models/model_bw_detect')
+	print('model ball-wall detect saved')
  
- 	'''
- 
- 	'''
 	# train ball ball detection model
 	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample=10000)
 	finals=np.argmax(finals,axis=1)
@@ -242,8 +255,10 @@ if __name__ == '__main__':
 	model=ball_ball_detect_net()
 	loss_fn = nn.NLLLoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	train_model(data,target,model,loss_fn,optimizer,nEpoch=300,bach_size=200)
- 	'''
+	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
+	torch.save(model.state_dict(), './saved_models/model_bb_detect')
+	print('model ball-ball detect saved')
+	
 
 
 

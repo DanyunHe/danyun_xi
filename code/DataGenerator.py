@@ -6,6 +6,8 @@ from itertools import combinations
 import os
 from tqdm import tqdm
 import random
+import real_traj as rj 
+
 random.seed(7)
 
 def update(x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2, dt):
@@ -86,12 +88,14 @@ def ball_ball_update_data(n_sample=100000,dt=1):
 	    if (x1-x2)**2+(y1-y2)**2 > (r1+r2)**2: # initially not touching
 	        vx1 = np.random.rand()*2-1
 	        vy1 = np.random.rand()*2-1
-	        vx2 = 0*(np.random.rand()*4-2)
-	        vy2 = 0*(np.random.rand()*4-2)
+	        vx2 = np.random.rand()*4-2
+	        vy2 = np.random.rand()*4-2
 	        if (x1+(vx1-vx2)*dt-x2)**2+(y1+(vy1-vy2)*dt-y2)**2 < (r1+r2)**2:
-	            initials.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
+	            # initials.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
+	            initials.append([x1, y1, r1, m1,vx1, vx2, vy1, vy2])
 	            x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2 = update(x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2, dt)
-	            finals.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
+	            # finals.append([x1, x2, y1, y2, r1, r2, m1, m2, vx1, vx2, vy1, vy2])
+	            finals.append([x1, y1, r1, m1,vx1, vx2, vy1, vy2])
 	            count+=1
 	        else:
 	            continue
@@ -197,14 +201,51 @@ def ball_ball_detect_data(dt=1,width=1,n_sample = 100000):
 
 	return initials,finals
 
+# generate true trajectoris of balls 
+def true_data(N_ball = 5,width = 300,height = 300,length = 1000,dt = 1):
+	geometry = [width, height]
+	ovlap = True
+	count = 1
+	while ovlap == True:
+	    print("attempt: ", count)
+	    count += 1
+	    ovlap = False
+	    balls = []
+	    for i in range(N_ball):
+	        balls.append(rj.generate_ball(balls, geometry))
+	    results = []
+	    results.append(np.array(balls))
+	
+	    for i in range(length):
+	        dt_c, ball_1_index, item_2_index = rj.event_handler(balls,geometry, dt=dt)
+	        rj.update(balls,ball_1_index, item_2_index, dt_c, geometry, dt = dt)
+	        if rj.check_overlap(balls, i) == True:
+	            ovlap = True
+	        results.append(np.array(balls))
+	    data = np.array(results).reshape(length+1,6*len(balls))
+	    filename = 'test1'
+	    np.savetxt('./data_results/'+filename, data)
+	    params = [str(width),str(height)]
+	    with open('./data_results/params_'+filename,'w') as file:
+	        for param in params:
+	            file.writelines(param+'\n')
+	print("No overlap data generated!")
+	return data 
+
+
+# test
 if __name__ == '__main__':
+
+	"""
 	initials,finals=ball_ball_update_data(n_sample=100,dt=1)
 	print(initials.shape,finals.shape)
 	initials,finals=ball_wall_detect_data(dt=1,width=1,n_sample=100)
 	print(initials.shape,finals.shape)
 	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample = 100)
 	print(initials.shape,finals.shape)
-
+	"""
+	data=true_data()
+	print(len(data))
 
 
 
