@@ -193,21 +193,18 @@ class ball_ball_detect_net(nn.Module):
         
         self.fc1=nn.Linear(5,200)
         self.fc2=nn.Linear(200,200)
-        self.fc3=nn.Linear(200,5)
+        self.fc3=nn.Linear(200,1)
     
     def forward(self,x):
         x=F.relu(self.fc1(x)) 
         x=F.relu(self.fc2(x))
-        x=F.log_softmax(self.fc3(x))
+        x=torch.sigmoid(self.fc3(x))
 
         return x
 
-
-
-
 if __name__ == '__main__':
 
-	
+	"""
 	# train ball ball update model
 	initials,finals=ball_ball_update_data(n_sample=2000,dt=1)
 	print(initials.shape,finals.shape)
@@ -245,15 +242,13 @@ if __name__ == '__main__':
 	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
 	torch.save(model.state_dict(), './saved_models/model_bw_detect')
 	print('model ball-wall detect saved')
- 
+ 	"""
 	# train ball ball detection model
 	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample=10000)
-	finals=np.argmax(finals,axis=1)
 	print(initials.shape,finals.shape)
 	data,target=data_trans(initials,finals)
-	data,target=data.float(),target.long()
 	model=ball_ball_detect_net()
-	loss_fn = nn.NLLLoss()
+	loss_fn = nn.BCELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
 	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
 	torch.save(model.state_dict(), './saved_models/model_bb_detect')

@@ -51,7 +51,6 @@ def bw_update(cur, ind):
     else:
         return prop(cur)
 
-
 def main(N_ball=5,N_sample=1000):
 	model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect=load_models()
 	model_bb_update.eval()
@@ -79,8 +78,11 @@ def main(N_ball=5,N_sample=1000):
 	        vx2p = vx2/r2
 	        vy1p = vy1/r2
 	        vy2p = vy2/r2
-	        if model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])) == 1:
+	       	print(model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])))
+	       	bb_detect=model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])).detach().numpy()
+	        if  bb_detect[0]== 1:
 	            hit = np.array([j,k])
+	            print(model_bb_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])))
 	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = model_bb_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]]))
 	            x1 = x1p*r2 + x2
 	            y1 = y1p*r2 + y2
@@ -95,7 +97,7 @@ def main(N_ball=5,N_sample=1000):
 	            break
 
 	    for l in np.setdiff1d(np.arange(N_ball),hit):
-	        ind = model_bw.predict_classes(np.expand_dims(balls[l][0][[0,1,2,4,5]]/width, axis=0))[0]
+	        ind = model_bw_detect(np.expand_dims(balls[l][0][[0,1,2,4,5]]/width, axis=0))[0]
 	        balls[l] = np.expand_dims(bw_update(balls[l][0], ind), axis=0)
 	    result_wE.append(deepcopy(balls))
 	result_wE = np.array(result_wE).reshape(N_sample+1,N_ball*6)
@@ -103,7 +105,7 @@ def main(N_ball=5,N_sample=1000):
 
 
 if __name__ == '__main__':
-	main()
+	main(N_sample=2)
 
 
 
