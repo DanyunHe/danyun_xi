@@ -23,19 +23,19 @@ def load_models():
 
 	return model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect
 
-def prop(state):
+def prop(state,dt=1):
     return state@np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,dt,0,0,0,1]])
-def lwall(state):
+def lwall(state,dt=1):
     return state@np.array([[-1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[-dt,0,0,0,-1,0],[0,dt,0,0,0,1]])+np.array([2*state[2],0,0,0,0,0])
-def rwall(state):
+def rwall(state,dt=1):
     return state@np.array([[-1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[-dt,0,0,0,-1,0],[0,dt,0,0,0,1]])+np.array([2*width - 2*state[2],0,0,0,0,0])
-def dwall(state):
+def dwall(state,dt=1):
     return state@np.array([[1,0,0,0,0,0],[0,-1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,-dt,0,0,0,-1]])+np.array([0,2*state[2],0,0,0,0])
-def uwall(state):
+def uwall(state,dt=1):
     return state@np.array([[1,0,0,0,0,0],[0,-1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,-dt,0,0,0,-1]])+np.array([0,2*width - 2*state[2],0,0,0,0])
 
@@ -51,7 +51,7 @@ def bw_update(cur, ind):
     else:
         return prop(cur)
 
-def main(N_ball=5,N_sample=1000):
+def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect=load_models()
 	model_bb_update.eval()
 	model_bb_opt_update.eval()
@@ -78,12 +78,14 @@ def main(N_ball=5,N_sample=1000):
 	        vx2p = vx2/r2
 	        vy1p = vy1/r2
 	        vy2p = vy2/r2
-	       	print(model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])))
+	       	
 	       	bb_detect=model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])).detach().numpy()
-	        if  bb_detect[0]== 1:
+	        if  bb_detect > 0.6:
 	            hit = np.array([j,k])
-	            print(model_bb_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])))
-	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = model_bb_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]]))
+	            
+	            bb_update=model_bb_opt_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])).detach().numpy()
+	            print(bb_update)
+	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = bb_update
 	            x1 = x1p*r2 + x2
 	            y1 = y1p*r2 + y2
 	            x2 = x2p*r2 + x2
@@ -95,10 +97,11 @@ def main(N_ball=5,N_sample=1000):
 	            balls[j] = np.array([[x1, y1, r1, m1, vx1, vy1]])
 	            balls[k] = np.array([[x2, y2, r2, m2, vx2, vy2]])
 	            break
-
 	    for l in np.setdiff1d(np.arange(N_ball),hit):
-	        ind = model_bw_detect(np.expand_dims(balls[l][0][[0,1,2,4,5]]/width, axis=0))[0]
-	        balls[l] = np.expand_dims(bw_update(balls[l][0], ind), axis=0)
+	    	bw_detect=model_bw_detect(torch.tensor(balls[l][0][[0,1,2,4,5]]/width).unsqueeze(0).float())
+	    	bw_detect=bw_detect.detach().numpy()
+	    	ind = np.argmax(bw_detect[0])
+	    	balls[l] = np.expand_dims(bw_update(balls[l][0], ind), axis=0)
 	    result_wE.append(deepcopy(balls))
 	result_wE = np.array(result_wE).reshape(N_sample+1,N_ball*6)
 	np.savetxt('./data_results/test1_wE', result_wE)
