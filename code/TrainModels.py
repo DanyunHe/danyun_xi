@@ -1,11 +1,4 @@
-from scipy import optimize
 import numpy as np
-from numpy import arctan, cos, sin, sign, pi, arcsin, arccos
-from numpy.linalg import norm
-import matplotlib.pyplot as plt
-from itertools import combinations
-
-import matplotlib.gridspec as gridspec
 import os
 
 import torch 
@@ -50,9 +43,7 @@ def data_trans(init,final):
 def train_model(data,target,model,loss_fn,optimizer,nEpoch,bach_size=20):
     train_data, train_target, val_data, val_target,test_data, test_target=data_loader(data,target)
     nBach=int(len(train_data)/bach_size)
-#     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-#     train_data=train_data.to(device)
-#     train_target=train_target.to(device)
+
     for n in range(nEpoch):
         count=0
         model.train()
@@ -72,20 +63,7 @@ def train_model(data,target,model,loss_fn,optimizer,nEpoch,bach_size=20):
         y_test = model(test_data)
         test_loss = loss_fn(y_test, test_target)
 
-        
-#         y_hat=y_test.detach().numpy()
-#         y_hat=np.where(y_hat>0.5,1,0)
-#         target_hat=test_target.detach().numpy()
-#         test_acc=accuracy(target_hat,y_hat)
-        
-#         train_pred=model(train_data)
-#         train_hat=train_pred.detach().numpy()
-#         train_hat=np.where(train_hat>0.5,1,0)
-#         train_target_hat=train_target.detach().numpy()
-#         train_acc=accuracy(train_hat,train_target_hat)
-       
-#         print(n,count.mean())
-        print('episode: {}, train loss: {}, test loss: {},test accuracy: {}, train accuracy:{}'.format(n,count.mean()/nBach,test_loss.item(),0,0))
+    print('episode: {}, train loss: {}, test loss: {}'.format(n,count.mean()/nBach,test_loss.item()))
         
     
     return model
@@ -181,7 +159,7 @@ class ball_wall_detect_net(nn.Module):
     def forward(self,x):
         x=F.relu(self.fc1(x)) 
         x=F.relu(self.fc2(x))
-        x=F.log_softmax(self.fc3(x))
+        x=F.softmax(self.fc3(x))
 
         return x
 
@@ -212,7 +190,7 @@ if __name__ == '__main__':
 	model=ball_ball_update_net()
 	loss_fn = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=100)
+	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=200,bach_size=100)
 	torch.save(model.state_dict(), './saved_models/model_bb_update')
 	print('model ball-ball update saved')
 	
@@ -225,10 +203,10 @@ if __name__ == '__main__':
 	model=ball_ball_update_opt_net()
 	loss_fn = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=5,bach_size=100)
+	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=100,bach_size=100)
 	torch.save(model.state_dict(), './saved_models/model_bb_opt_update')
 	print('model ball-ball opt update saved')
-
+	"""
 	
 	# train ball wall detection model
 	initials,finals=ball_wall_detect_data(dt=1,width=1,n_sample=10000)
@@ -237,12 +215,13 @@ if __name__ == '__main__':
 	data,target=data_trans(initials,finals)
 	data,target=data.float(),target.long()
 	model=ball_wall_detect_net()
-	loss_fn = nn.NLLLoss()
+	loss_fn = nn.CrossEntropyLoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
+	train_model(data,target,model,loss_fn,optimizer,nEpoch=100,bach_size=200)
 	torch.save(model.state_dict(), './saved_models/model_bw_detect')
+	print(model(data[1]))
 	print('model ball-wall detect saved')
- 	"""
+ 	
 	# train ball ball detection model
 	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample=10000)
 	print(initials.shape,finals.shape)
@@ -250,7 +229,7 @@ if __name__ == '__main__':
 	model=ball_ball_detect_net()
 	loss_fn = nn.BCELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	train_model(data,target,model,loss_fn,optimizer,nEpoch=2,bach_size=200)
+	train_model(data,target,model,loss_fn,optimizer,nEpoch=100,bach_size=200)
 	torch.save(model.state_dict(), './saved_models/model_bb_detect')
 	print('model ball-ball detect saved')
 	

@@ -23,33 +23,33 @@ def load_models():
 
 	return model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect
 
-def prop(state,dt=1):
+def prop(state,dt=1,width = 300):
     return state@np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,dt,0,0,0,1]])
-def lwall(state,dt=1):
+def lwall(state,dt=1,width = 300):
     return state@np.array([[-1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[-dt,0,0,0,-1,0],[0,dt,0,0,0,1]])+np.array([2*state[2],0,0,0,0,0])
-def rwall(state,dt=1):
+def rwall(state,dt=1,width = 300):
     return state@np.array([[-1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[-dt,0,0,0,-1,0],[0,dt,0,0,0,1]])+np.array([2*width - 2*state[2],0,0,0,0,0])
-def dwall(state,dt=1):
+def dwall(state,dt=1,width = 300):
     return state@np.array([[1,0,0,0,0,0],[0,-1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,-dt,0,0,0,-1]])+np.array([0,2*state[2],0,0,0,0])
-def uwall(state,dt=1):
+def uwall(state,dt=1,width = 300):
     return state@np.array([[1,0,0,0,0,0],[0,-1,0,0,0,0],[0,0,1,0,0,0],\
     	[0,0,0,1,0,0],[dt,0,0,0,1,0],[0,-dt,0,0,0,-1]])+np.array([0,2*width - 2*state[2],0,0,0,0])
 
-def bw_update(cur, ind):
+def bw_update(cur, ind,dt=1,width = 300):
     if ind == 0:
-        return lwall(cur)
+        return lwall(cur,dt=1,width = 300)
     elif ind == 1:
-        return rwall(cur)
+        return rwall(cur,dt=1,width = 300)
     elif ind == 2:
-        return dwall(cur)
+        return dwall(cur,dt=1,width = 300)
     elif ind == 3:
-        return uwall(cur)
+        return uwall(cur,dt=1,width = 300)
     else:
-        return prop(cur)
+        return prop(cur,dt=1,width = 300)
 
 def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect=load_models()
@@ -60,6 +60,7 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 
 	print('models loaded')
 	real_data=true_data()
+	np.savetxt('./data_results/test1', real_data)
 
 	# prediction 
 	balls = real_data[0].reshape(N_ball, 1, 6)
@@ -84,8 +85,8 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	            hit = np.array([j,k])
 	            
 	            bb_update=model_bb_opt_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])).detach().numpy()
-	            print(bb_update)
-	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = bb_update
+	       
+	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = bb_update[0]
 	            x1 = x1p*r2 + x2
 	            y1 = y1p*r2 + y2
 	            x2 = x2p*r2 + x2
@@ -101,14 +102,14 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	    	bw_detect=model_bw_detect(torch.tensor(balls[l][0][[0,1,2,4,5]]/width).unsqueeze(0).float())
 	    	bw_detect=bw_detect.detach().numpy()
 	    	ind = np.argmax(bw_detect[0])
-	    	balls[l] = np.expand_dims(bw_update(balls[l][0], ind), axis=0)
+	    	balls[l] = np.expand_dims(bw_update(balls[l][0], ind,dt=1,width = 300), axis=0)
 	    result_wE.append(deepcopy(balls))
 	result_wE = np.array(result_wE).reshape(N_sample+1,N_ball*6)
 	np.savetxt('./data_results/test1_wE', result_wE)
 
 
 if __name__ == '__main__':
-	main(N_sample=2)
+	main()
 
 
 

@@ -6,7 +6,7 @@ from itertools import combinations
 import os
 from tqdm import tqdm
 import random
-import real_traj as rj 
+import RealTraj as rj 
 
 random.seed(7)
 
@@ -243,9 +243,10 @@ if __name__ == '__main__':
 	print(initials.shape,finals.shape)
 	initials,finals=ball_ball_detect_data(dt=1,width=1,n_sample = 100)
 	print(initials.shape,finals.shape)
-	"""
 	data=true_data()
 	print(len(data))
+	"""
+	
 
 
 
