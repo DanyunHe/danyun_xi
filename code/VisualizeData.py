@@ -51,7 +51,7 @@ def main(n_frame=500):
 	    plt.close()
 
 if __name__ == '__main__':
-	main()
+	main(n_frame=50)
 
 # make movie by 
 # ffmpeg -framerate 50 -i ./%06d.png -preset slow -c:v libx264 -crf 17 -pix_fmt yuv420p -movflags faststart test.mov

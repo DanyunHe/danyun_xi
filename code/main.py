@@ -7,6 +7,17 @@ from DataGenerator import true_data
 from copy import deepcopy
 from tqdm import tqdm
 
+import tensorflow as tf
+
+from keras.models import Sequential, Model
+from keras.layers import *
+from keras.optimizers import SGD, Adam
+from keras import losses, regularizers
+from keras import backend as K
+from keras.models import model_from_json
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+K.set_floatx("float64")
 def load_models():
 
 	model_bb_update=ball_ball_update_net()
@@ -22,6 +33,32 @@ def load_models():
 	model_bw_detect.load_state_dict(torch.load('./saved_models/model_bw_detect'))
 
 	return model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect
+
+
+def load_models2():
+	K.set_floatx("float64")
+
+
+	json_file = open('./models/model_ball_ball_1.json',"r")
+	model_json = json_file.read()
+	model_bb_update = model_from_json(model_json)
+	model_bb_update.load_weights("./models/model_ball_ball_1.h5")
+
+	model_bb_opt_update=ball_ball_update_opt_net()
+	model_bb_opt_update.load_state_dict(torch.load('./saved_models/model_bb_opt_update'))
+
+	json_file = open('./models/model_bb_pred.json',"r")
+	model_json = json_file.read()
+	model_bb_detect = model_from_json(model_json)
+	model_bb_detect.load_weights("./models/model_bb_pred.h5")
+
+	json_file = open('./models/model_handler.json',"r")
+	model_json = json_file.read()
+	model_bw_detect = model_from_json(model_json)
+	model_bw_detect.load_weights("./models/model_handler.h5")
+
+	return model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect
+
 
 def prop(state,dt=1,width = 300):
     return state@np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],\
@@ -52,11 +89,11 @@ def bw_update(cur, ind,dt=1,width = 300):
         return prop(cur,dt=1,width = 300)
 
 def main(N_ball=5,N_sample=1000,width = 300,height = 300):
-	model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect=load_models()
-	model_bb_update.eval()
+	model_bb_update,model_bb_opt_update,model_bb_detect,model_bw_detect=load_models2()
+	# model_bb_update.eval()
 	model_bb_opt_update.eval()
-	model_bb_detect.eval()
-	model_bw_detect.eval()
+	# model_bb_detect.eval()
+	# model_bw_detect.eval()
 
 	print('models loaded')
 	real_data=true_data()
@@ -80,8 +117,9 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	        vy1p = vy1/r2
 	        vy2p = vy2/r2
 	       	
-	       	bb_detect=model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])).detach().numpy()
-	        if  bb_detect > 0.6:
+	       	# bb_detect=model_bb_detect(torch.tensor([[x1p, y1p, r1p, vx1p, vy1p]])).detach().numpy()
+	        # if  bb_detect > 0.6:
+	        if model_bb_detect.predict_classes(np.array([[x1p, y1p, r1p, vx1p, vy1p]]))[0] == 1:
 	            hit = np.array([j,k])
 	            
 	            bb_update=model_bb_opt_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])).detach().numpy()
@@ -99,17 +137,19 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	            balls[k] = np.array([[x2, y2, r2, m2, vx2, vy2]])
 	            break
 	    for l in np.setdiff1d(np.arange(N_ball),hit):
-	    	bw_detect=model_bw_detect(torch.tensor(balls[l][0][[0,1,2,4,5]]/width).unsqueeze(0).float())
-	    	bw_detect=bw_detect.detach().numpy()
-	    	ind = np.argmax(bw_detect[0])
-	    	balls[l] = np.expand_dims(bw_update(balls[l][0], ind,dt=1,width = 300), axis=0)
+	    	# bw_detect=model_bw_detect(torch.tensor(balls[l][0][[0,1,2,4,5]]/width).unsqueeze(0).float())
+	    	# bw_detect=bw_detect.detach().numpy()
+	    	# ind = np.argmax(bw_detect[0])
+	    	ind = model_bw_detect.predict_classes(np.expand_dims(balls[l][0][[0,1,2,4,5]]/width, axis=0))[0]
+	    	balls[l] = np.expand_dims(bw_update(balls[l][0], ind), axis=0)
+	    	# balls[l] = np.expand_dims(bw_update(balls[l][0], ind,dt=1,width = 300), axis=0)
 	    result_wE.append(deepcopy(balls))
 	result_wE = np.array(result_wE).reshape(N_sample+1,N_ball*6)
 	np.savetxt('./data_results/test1_wE', result_wE)
 
 
 if __name__ == '__main__':
-	main()
+	main(N_sample=100)
 
 
 
