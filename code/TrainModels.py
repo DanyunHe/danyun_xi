@@ -62,8 +62,7 @@ def train_model(data,target,model,loss_fn,optimizer,nEpoch,bach_size=20):
         model.eval()
         y_test = model(test_data)
         test_loss = loss_fn(y_test, test_target)
-
-    print('episode: {}, train loss: {}, test loss: {}'.format(n,count.mean()/nBach,test_loss.item()))
+        print('episode: {}, train loss: {}, test loss: {}'.format(n,count.mean()/nBach,test_loss.item()))
         
     
     return model
@@ -89,7 +88,7 @@ class ball_ball_update_net(nn.Module):
 # input (8): (x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p)
 # output (8): (x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p)
 class ball_ball_update_opt_net(nn.Module):
-    def __init__(self, nFeatures=8, nHidden=500, nCls=8, neq=2, Qpenalty=10, eps=1e-4):
+    def __init__(self, nFeatures=8, nHidden=2000, nCls=8, neq=2, Qpenalty=10, eps=1e-4):
         super(ball_ball_update_opt_net,self).__init__()
 
         self.nFeatures = nFeatures
@@ -101,7 +100,6 @@ class ball_ball_update_opt_net(nn.Module):
         self.fc2=nn.Linear(nHidden,nHidden)
         self.fc3=nn.Linear(nHidden,nHidden)
         self.fc4 = nn.Linear(nHidden, nCls)
-        self.fc5=nn.Linear(nFeatures,nCls)
         
         self.Q = Parameter(torch.eye(nFeatures).double()) # will change
         self.G = Variable(torch.zeros(nFeatures,nFeatures).double())
@@ -119,7 +117,7 @@ class ball_ball_update_opt_net(nn.Module):
         # QP-FC
         x = x.view(nBatch, -1)
 #         print(x.size())
-        x = self.fc0(x)
+        # x = self.fc0(x)
 
         Q = self.Q.unsqueeze(0).expand(nBatch, self.Q.size(0), self.Q.size(1))
         p = -x.view(nBatch,-1)
@@ -141,7 +139,7 @@ class ball_ball_update_opt_net(nn.Module):
         
         x = F.relu(self.fc1(x))
         x=F.relu(self.fc2(x))
-        x=F.relu(self.fc3(x))
+        # x=F.relu(self.fc3(x))
         x=self.fc4(x)
        
         return x
@@ -198,13 +196,14 @@ if __name__ == '__main__':
 
 	
 	# train ball ball update opt model
-	initials,finals=ball_ball_update_data(n_sample=20000,dt=1)
+	initials,finals=ball_ball_update_data(n_sample=10000,dt=1)
 	print(initials.shape,finals.shape)
 	data,target=data_trans(initials,finals)
 	model=ball_ball_update_opt_net()
+	model.load_state_dict(torch.load('./saved_models/model_bb_opt_update'))
 	loss_fn = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(),lr=3e-3, weight_decay=4e-4)
-	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=300,bach_size=100)
+	model=train_model(data,target,model,loss_fn,optimizer,nEpoch=50,bach_size=100)
 	torch.save(model.state_dict(), './saved_models/model_bb_opt_update')
 	print('model ball-ball opt update saved')
 

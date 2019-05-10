@@ -125,6 +125,7 @@ def main(N_ball=5,N_sample=1000,width = 300,height = 300):
 	            bb_update=model_bb_opt_update(torch.tensor([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]])).detach().numpy()
 	       
 	            x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = bb_update[0]
+	            # x1p, x2p, y1p, y2p, vx1p, vx2p, vy1p, vy2p = model_bb_update.predict(np.array([[x1p, y1p, r1p, m1p, vx1p, vx2p, vy1p, vy2p]]))[0]
 	            x1 = x1p*r2 + x2
 	            y1 = y1p*r2 + y2
 	            x2 = x2p*r2 + x2

@@ -80,7 +80,6 @@ def ball_ball_update_data(n_sample=100000,dt=1):
 	    r2 = 1
 	    m1 = np.random.rand()*1.5+0.5
 	    m2 = 1
-	#     m2 = 1
 	    x1 = np.random.rand()*6-3
 	    y1 = np.random.rand()*6-3
 	    x2 = 0*np.random.rand()*4
