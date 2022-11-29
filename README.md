@@ -1,5 +1,4 @@
-# danyun_xi
-AM221 Project, and future research projects 
+AM221 Project on learnig a many-ball system
 
 TrainModels.py
 
